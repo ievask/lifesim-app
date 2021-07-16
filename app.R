@@ -15,7 +15,9 @@ library(scales)
 library(psych)
 library(data.table)
 library(gridExtra )
+library(readxl)
 
+ 
 
 
 
@@ -28,18 +30,34 @@ ui <- fluidPage(
                           # headerPanel('Estimated lifetime outcomes for individuals similar to you'),
                           
                           sidebarPanel(
-                            selectInput('varc', 'What was your biological sex at birth?', choices=c("Female"=0, "Male"=1), selected = 1 
+                            selectInput('s.sex', 'What was your biological sex at birth?', choices=c("Female"=0, "Male"=1), selected = 1 
                             ) ,
-                               # selectInput('varc2', 'How would you rank your cognitive skills at age 7 relative to peers?', choices=c("In the lowest quintile"=1, "In the 2nd lowest quintile"=2,   "Around the average"=3, "In the 2nd highest quintile"=4, "In the top quintile"=5), selected = 5 
+                            # radioButtons('varc2', 'How would you rank your cognitive skills at age 7 relative to peers?', choices=rev(c("In the lowest quintile"=1, "In the 2nd lowest quintile"=2,   "Around the average"=3, "In the 2nd highest quintile"=4, "In the top quintile"=5) ), selected = 5
+                            # ),
+                            radioButtons('s.cog', 'How would you rank your cognitive skills at age 7 relative to peers?', choices=rev(c("In the lowest quintile"=1, "In the 2nd lowest quintile"=2,   "Around the average"=3, "In the 2nd highest quintile"=4, "In the top quintile"=5) ), selected = 5
+                            ),
+                            
+                            
+                          # selectInput('varc2', 'How would you rank your cognitive skills at age 7 relative to peers?', choices=c("In the lowest quintile"=1, "In the 2nd lowest quintile"=2,   "Around the average"=3, "In the 2nd highest quintile"=4, "In the top quintile"=5), selected = 5
                           # ),
-                          selectInput('varc3', 'Did you graduate with a university degree?', choices=c("Yes"=1, "No"=0), selected =1
-                          ),
-                              checkboxGroupInput('vard', 'Did any of the following apply to you during early childhood?' , 
-                                                           choices= c("Born in poverty"="depr_b","Parental depression"="mhealth_p2","No parental university degree"="noedu_p",
-                                                                      "High conduct problems at age 5"="highcp5"  ),    inline = F ) ,
-                          checkboxGroupInput('vard1', 'Did any of the following apply to you during teenage years?' , 
-                                                             choices= c( "Conduct disorder at age 18"="cd18",
-                                                                        "Regular smoking at age 14"="smokes14", "Regular smoking at age 19"="unh_beh19"  ),   inline = F ),    inline = T )  
+                          # sliderInput('varc2', 'How would you rank your cognitive skills at age 7 relative to peers?', min = 1, max = 5,
+                          #             value = 1 
+                          # ),
+                          # selectInput('varc3', 'Did you graduate with a university degree?', choices=c("Yes"=1, "No"=0), selected =1
+                          # ),
+                              # checkboxGroupInput('vard', 'Did any of the following apply to you during early childhood?' , 
+                              #                              choices= c("Born in poverty"="depr_b",
+                              #                                         "High conduct problems at age 5"="highcp5"  ),    inline = F ) ,
+                          checkboxGroupInput('s.adv', 'Did any of the following apply to you during early childhood?' ,
+                                             choices= c("Born in poverty"="depr_b","Parental depression"="mhealth_p2","No parental university degree"="noedu_p",
+                                                        "High conduct problems at age 5"="highcp5", "Frequent smoker at age 14"="smokes14"  ),    inline = F ) ,
+                          
+                          
+                          
+                            # checkboxGroupInput('vard1', 'Did any of the following apply to you during teenage years?' , 
+                          #                                    choices= c( "Conduct disorder at age 18"="cd18",
+                          #                                               "Regular smoking at age 14"="smokes14", "Regular smoking at age 19"="unh_beh19"  ),   inline = F ), 
+                          inline = T )  
                           
                         ,
                      
@@ -110,16 +128,91 @@ server <- function(input, output) {
      
      # if(length(data0[apply(data0[c(  "sex" )] == input$varc, 1, all),]$id)>=1){
      #   data0<-data0[apply(data0[c(  "sex" )] == input$varc, 1, all),]} 
+     
+     reglife_length = lm(life_length~sex+depr_b+mhealth_p2+ +noedu_p+ qntile_cog7+highcp5+smokes14, data = maindata)
+     
+     regQALY = lm(QALY~sex+depr_b+mhealth_p2+ +noedu_p+ qntile_cog7+highcp5+smokes14, data = maindata)
+     reghealth = lm(health~sex+depr_b+mhealth_p2+ +noedu_p + qntile_cog7+highcp5+smokes14, data = maindata)
+     regearnings = lm(earnings~sex+depr_b+mhealth_p2+ +noedu_p + qntile_cog7+highcp5+smokes14, data = maindata)
+     regconsumption = lm(consumption~sex+depr_b+mhealth_p2+ +noedu_p + qntile_cog7+highcp5+smokes14, data = maindata)
+     regservicecosts = lm(servicecosts~sex+depr_b+mhealth_p2+ +noedu_p + qntile_cog7+highcp5+smokes14, data = maindata)
+     regbenefits = lm(benefits~sex+depr_b+mhealth_p2+ +noedu_p + qntile_cog7+highcp5+smokes14, data = maindata)
+     regtaxes = lm(taxes~sex+depr_b+mhealth_p2+ noedu_p+ qntile_cog7+highcp5+smokes14, data = maindata)
+     
  
- benchmark<-maindata[apply(maindata[c(  "sex" )] == input$varc, 1, all),]
+ benchmark<-maindata[apply(maindata[c(  "sex" )] == input$s.sex, 1, all),]
  benchmark<- bind_rows(colMeans(benchmark,na.rm=T) )
+ s.depr_b=if(is.element('depr_b',input$s.adv)==T){1}else{0}
+ s.mhealth_p2=if(is.element('mhealth_p2',input$s.adv)==T){1}else{0}
+ s.noedu_p=if(is.element('noedu_p',input$s.adv)==T){1}else{0}
+ s.highcp5=if(is.element('highcp5',input$s.adv)==T){1}else{0}
+ s.smokes14=if(is.element('smokes14',input$s.adv)==T){1}else{0}
  
- data0<-maindata[apply(maindata[c(  "sex" )] == input$varc & !is.na(maindata[c(  "sex" )]), 1, all),]
+  
+ reg<-reglife_length
+ 
+ life_length<-summary(reg)$coefficients[1,1]+summary(reg)$coefficients[2,1]*as.numeric(input$s.sex )+ summary(reg)$coefficients[3,1]*s.depr_b+
+   summary(reg)$coefficients[4,1]*s.mhealth_p2+   summary(reg)$coefficients[5,1]*s.noedu_p+ summary(reg)$coefficients[6,1]*as.numeric(input$s.cog )+  
+   summary(reg)$coefficients[7,1]*s.highcp5+  
+   summary(reg)$coefficients[8,1]*s.smokes14
+ 
+ reg<-regQALY
+ QALY<-summary(reg)$coefficients[1,1]+summary(reg)$coefficients[2,1]*as.numeric(input$s.sex )+ summary(reg)$coefficients[3,1]*s.depr_b+
+   summary(reg)$coefficients[4,1]*s.mhealth_p2+   summary(reg)$coefficients[5,1]*s.noedu_p+ summary(reg)$coefficients[6,1]*as.numeric(input$s.cog )+  
+   summary(reg)$coefficients[7,1]*s.highcp5+  
+   summary(reg)$coefficients[8,1]*s.smokes14
+ reg<-reghealth
+ 
+ health<-summary(reg)$coefficients[1,1]+summary(reg)$coefficients[2,1]*as.numeric(input$s.sex )+ summary(reg)$coefficients[3,1]*s.depr_b+
+   summary(reg)$coefficients[4,1]*s.mhealth_p2+   summary(reg)$coefficients[5,1]*s.noedu_p+ summary(reg)$coefficients[6,1]*as.numeric(input$s.cog )+  
+   summary(reg)$coefficients[7,1]*s.highcp5+  
+   summary(reg)$coefficients[8,1]*s.smokes14
+ 
+ reg<-regearnings
+ 
+ earnings<-summary(reg)$coefficients[1,1]+summary(reg)$coefficients[2,1]*as.numeric(input$s.sex )+ summary(reg)$coefficients[3,1]*s.depr_b+
+   summary(reg)$coefficients[4,1]*s.mhealth_p2+   summary(reg)$coefficients[5,1]*s.noedu_p+ summary(reg)$coefficients[6,1]*as.numeric(input$s.cog )+  
+   summary(reg)$coefficients[7,1]*s.highcp5+  
+   summary(reg)$coefficients[8,1]*s.smokes14
+
+ reg<-regconsumption
+ consumption<-summary(reg)$coefficients[1,1]+summary(reg)$coefficients[2,1]*as.numeric(input$s.sex )+ summary(reg)$coefficients[3,1]*s.depr_b+
+   summary(reg)$coefficients[4,1]*s.mhealth_p2+   summary(reg)$coefficients[5,1]*s.noedu_p+ summary(reg)$coefficients[6,1]*as.numeric(input$s.cog )+  
+   summary(reg)$coefficients[7,1]*s.highcp5+  
+   summary(reg)$coefficients[8,1]*s.smokes14
+ 
+ reg<-regservicecosts
+ 
+ servicecosts<-summary(reg)$coefficients[1,1]+summary(reg)$coefficients[2,1]*as.numeric(input$s.sex )+ summary(reg)$coefficients[3,1]*s.depr_b+
+   summary(reg)$coefficients[4,1]*s.mhealth_p2+   summary(reg)$coefficients[5,1]*s.noedu_p+ summary(reg)$coefficients[6,1]*as.numeric(input$s.cog )+  
+   summary(reg)$coefficients[7,1]*s.highcp5+  
+   summary(reg)$coefficients[8,1]*s.smokes14
+ 
+ reg<-regbenefits
+ 
+ benefits<-summary(reg)$coefficients[1,1]+summary(reg)$coefficients[2,1]*as.numeric(input$s.sex )+ summary(reg)$coefficients[3,1]*s.depr_b+
+   summary(reg)$coefficients[4,1]*s.mhealth_p2+   summary(reg)$coefficients[5,1]*s.noedu_p+ summary(reg)$coefficients[6,1]*as.numeric(input$s.cog )+  
+   summary(reg)$coefficients[7,1]*s.highcp5+  
+   summary(reg)$coefficients[8,1]*s.smokes14
+ reg<-regtaxes
+ 
+ taxes<-summary(reg)$coefficients[1,1]+summary(reg)$coefficients[2,1]*as.numeric(input$s.sex )+ summary(reg)$coefficients[3,1]*s.depr_b+
+   summary(reg)$coefficients[4,1]*s.mhealth_p2+   summary(reg)$coefficients[5,1]*s.noedu_p+ summary(reg)$coefficients[6,1]*as.numeric(input$s.cog )+  
+   summary(reg)$coefficients[7,1]*s.highcp5+  
+   summary(reg)$coefficients[8,1]*s.smokes14
+ 
+ 
+
+ data0<- data.frame(life_length,QALY, health, earnings, consumption, servicecosts, benefits, taxes)
+ 
+ 
+  
+ # data0<-maindata[apply(maindata[c(  "sex" )] == input$varc & !is.na(maindata[c(  "sex" )]), 1, all),]
  # data0<-data0[apply( (data0[c(  "qntile_cog7" )] == input$varc2 &  !is.na(data0[c(  "qntile_cog7" )]) )  , 1, all),]
- data0<-data0[apply( (data0[c(  "edu" )] ==input$varc3 &  !is.na(data0[c(  "edu" )]) ), 1, all),]
- data0<-data0[apply( ( data0[c( input$vard )] == 1& !is.na(data0[c( input$vard )]) ), 1, all),]
- 
-if(length(data0$id)>0){ data0<-data0[apply( ( data0[c( input$vard1 )] == 1& !is.na(data0[c( input$vard1 )]) ), 1, all),] }
+ # data0<-data0[apply( (data0[c(  "edu" )] ==input$varc3 &  !is.na(data0[c(  "edu" )]) ), 1, all),]
+ # data0<-data0[apply( ( data0[c( input$vard )] == 1& !is.na(data0[c( input$vard )]) ), 1, all),]
+# if(length(data0$id)>0){ data0<-data0[apply( ( data0[c( input$vard1 )] == 1& !is.na(data0[c( input$vard1 )]) ), 1, all),] }
+ # data0n<-length(data0$id)
  
  
      # if(length(data0[apply(data0[c(  "qntile_cog7" )] == input$varc2, 1, all),]$id)>=1){  
@@ -129,9 +222,11 @@ if(length(data0$id)>0){ data0<-data0[apply( ( data0[c( input$vard1 )] == 1& !is.
      #   data0<-data0[apply(data0[c(  "edu" )] ==input$varc3, 1, all),] }
      
      
-     data0<- bind_rows(colMeans(data0,na.rm=T) )
+     # data0<- bind_rows(colMeans(data0,na.rm=T) )
      
-     outcomes1<-c(   "life_length", "health",  "QALY" )
+     # outcomes1<-c(   "life_length", "health",  "QALY" )
+     outcomes1<-c(    "health",  "QALY" )
+     
      
      outcomes3<-c(     "earnings",  "consumption"  )
      outcomes5<-c(     "servicecosts",  "benefits", "taxes"  )
@@ -140,6 +235,8 @@ if(length(data0$id)>0){ data0<-data0[apply( ( data0[c( input$vard1 )] == 1& !is.
      
      
      labels1<-c( "Life expectancy", "Healthy life expectancy" , "Good life expectancy"  )
+     # labels1<-c(   "Healthy life expectancy" , "Good life expectancy"  )
+     
      labels3<-c( "Gross earnings","Consumption" )
      labels5<-c( "Public services","Cash benefits","Tax receipts")
      benchmark1<-select(benchmark, all_of(outcomes1))%>%reshape2::melt( variable.name = "Outcome")
@@ -156,19 +253,19 @@ if(length(data0$id)>0){ data0<-data0[apply( ( data0[c( input$vard1 )] == 1& !is.
        scale_y_continuous(labels = scales::comma, limits=c(0, 90))+
        geom_bar(stat='identity', position = "dodge", alpha=0.8)+
        labs(x = "", y = "Years" , 
-             title = "Individual Lifetime Outcomes")+
+             title = "Individual Lifetime Outcomes"  )+
        theme_minimal( base_size=15 )+
        scale_color_discrete(breaks=c( )) + 
        coord_flip()+ 
        theme(legend.position="none" ,
              plot.title = element_text(hjust = 0.5)) +
        geom_errorbar(data=benchmark1,  aes( y = value, ymin=value, ymax=value,  col = "Ref1"), col = "red", linetype = 1,size=1)
-     if(is.na(data0$id) ){g1<-g1+ geom_text( x=2, y=40,label="Insufficient data points to make this prediction.", size=4, fontface="italic" )}
+     # if(is.na(data0$id) ){g1<-g1+ geom_text( x=2, y=40,label="Insufficient data points to make this prediction.", size=4, fontface="italic" )}
      
      positions <- rev(c(all_of(outcomes3)  ) )
      g3<-ggplot(data03, aes( x=factor(Outcome, levels=c( outcomes3 )     ), y=value ), colour="black")+
        scale_x_discrete(limits = positions, labels=rev(labels3) )+
-       scale_y_continuous(labels = scales::comma, limits=c(0, 45000) )+
+       scale_y_continuous(labels = scales::comma, limits=c(0, 52000) )+
        geom_bar(stat='identity', position = "dodge", alpha=0.8)+
        labs(x = "", y = paste(enc2utf8("\u00A3"), ", average annual value", sep="") ) +
        theme_minimal( base_size=15)+
@@ -176,12 +273,12 @@ if(length(data0$id)>0){ data0<-data0[apply( ( data0[c( input$vard1 )] == 1& !is.
        coord_flip()+ 
        theme(legend.position="none" ) +
        geom_errorbar(data=benchmark3,  aes( y = value, ymin=value, ymax=value,  col = "Ref1"), col = "red", linetype = 1,size=1)
-     if(is.na(data0$id) ){g3<-g3+ geom_text( x=2, y=20000,label="Insufficient data points to make this prediction.", size=4, fontface="italic" )}
+     # if(is.na(data0$id)   ){g3<-g3+ geom_text( x=2, y=20000,label="Insufficient data points to make this prediction.", size=4, fontface="italic" )}
      
      positions <- rev(c(all_of(outcomes5)  ) )
      g5<-ggplot(data05, aes( x=factor(Outcome, levels=c( outcomes5 )     ), y=value  ), colour="black")+
        scale_x_discrete(limits = positions, labels=rev(labels5) )+
-       scale_y_continuous(labels = scales::comma , limits=c(0, 700000))+
+       scale_y_continuous(labels = scales::comma , limits=c(0, 360000))+
        geom_bar(stat='identity', position = "dodge", alpha=0.8)+
        labs(x = "", y = paste(enc2utf8("\u00A3"), ", lifetime total", sep="") )+
        theme_minimal( base_size=15 )+
@@ -190,9 +287,9 @@ if(length(data0$id)>0){ data0<-data0[apply( ( data0[c( input$vard1 )] == 1& !is.
        theme(legend.position="none",
              plot.caption = element_text(hjust=0,  face="italic")) +
        geom_errorbar(data=benchmark5,  aes( y = value, ymin=value, ymax=value,  col = "Ref1"), col = "red", linetype = 1,size=1) 
-     if(is.na(data0$id) ){g5<-g5+ geom_text( x=2, y=300000,label="Insufficient data points to make this prediction.", size=4, fontface="italic" )}
+     # if(is.na(data0$id) ){g5<-g5+ geom_text( x=2, y=300000,label="Insufficient data points to make this prediction.", size=4, fontface="italic" )}
      
-      plot_grid( g1, g3, g5, ncol=1, align="v", rel_heights=c(6, 4, 5  ) )
+      plot_grid( g1, g3, g5, ncol=1, align="v", rel_heights=c(5, 4, 5  ) )
    }) 
    
   output$plot1 <- renderPlot({
@@ -206,15 +303,18 @@ data2<-maindata[apply(maindata[c(  input$varb )] == 1, 1, any),]
     data1<- bind_rows(colMeans(data1,na.rm=T) )
     data2<- bind_rows(colMeans(data2,na.rm=T) )
     data<-data1-data2
-    outcomes1<-c(   "life_length", "health",  "QALY" )
-
+    # outcomes1<-c(   "life_length", "health",  "QALY" )
+      outcomes1<-c(    "health",  "QALY" )
+    
     outcomes3<-c(     "earnings",  "consumption"  )
     outcomes5<-c(     "servicecosts",  "benefits", "taxes"  )
     
 
  
     
-    labels1<-c( "Life years", "Healthy life years" , "Good life years"  )
+    labels1<-c(  "Healthy life years" , "Good life years"  )
+    # labels1<-c( "Life years", "Healthy life years" , "Good life years"  )
+    
     labels3<-c( "Gross earnings","Consumption" )
     labels5<-c( "Public service savings","Cash savings","Tax receipts")
     
@@ -259,7 +359,7 @@ data2<-maindata[apply(maindata[c(  input$varb )] == 1, 1, any),]
       coord_flip()+ 
       theme(legend.position="none",
             plot.caption = element_text(hjust=0,  face="italic")) 
-    plot_grid( g1, g3, g5, ncol=1, align="v", rel_heights=c(6 ,4, 5  ) )
+    plot_grid( g1, g3, g5, ncol=1, align="v", rel_heights=c(5 ,4, 5  ) )
       })
   
   output$plot2 <- renderPlot({
