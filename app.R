@@ -64,11 +64,12 @@ ui <- fluidPage(
                           
                           mainPanel(
                             plotOutput('plot0'),
-                           p(  em("Note: The grey bars show the estimated lifetime outcomes for individuals with the selected characteristics. The red lines mark the population average values (adjusted by sex)."),align="left" )  )) ,  
+                           p(  strong("Note: The grey bars show the estimated lifetime outcomes for individuals with the selected characteristics. The red lines mark the population average values (adjusted by sex)."),align="left" )  )) ,  
                  tabPanel("Improving Life Chances", 
+                        p("DISCLAIMER: THE CONTENTS OF THIS TAB ARE WORK IN PROGRESS, PLEASE DO NOT CITE THEM"  ) ,
                        
                           sidebarPanel( 
-                            checkboxGroupInput('varb', 'Select the  childhood circumstances that you would like to improve:' ,  choices= c("Born in poverty"="depr_b","Parental depression"="mhealth_p2","No parental university degree"="noedu_p" ),
+                            checkboxGroupInput('varb', 'Select the adverse childhood circumstances that you would like to eliminate:' ,  choices= c("Born in poverty"="depr_b","Parental depression"="mhealth_p2","No parental university degree"="noedu_p" ),
                                                           selected = names(maindata)[[1]] )  ), mainPanel( 
                           tabsetPanel( tabPanel( "Average impact", plotOutput('plot1'), 
                                                  p(  em("Note:  Total population lifetime gains from a better childhood (per 100,000 individuals) in England."),align="left" )  ),
@@ -85,7 +86,7 @@ ui <- fluidPage(
                                      Full documentation can be found ", tags$a(href="https://doi.org/10.1101/2021.02.12.21251642", "here."), sep="")  ,
                          
                          p("The 'Individual Outcomes' tab allows you to enter child charactertistics, as well as various circumstances during childhood and young adulthood, and see how predicted lifetime public costs, health and wellbeing vary, according to the simulation."  ) ,
-                         p("The 'Improving Life Chances' tab allows to choose a set of childhood circumstances to improve. It then calculates the long term benefits accross the population (on average and for population subgroups)."  ) ,
+                         p("The 'Improving Life Chances' tab allows to choose a set of adverse childhood circumstances to eliminate. It then calculates the long term benefits accross the population (on average and for population subgroups)."  ) ,
                          
                          p("The estimates produced by this tool are simulations based on various sources of data. The predictions of the interactive tool are purely descriptive associations, and not based on causal analysis."  ), width =7  )
                        )
@@ -238,7 +239,7 @@ server <- function(input, output) {
      # labels1<-c(   "Healthy life expectancy" , "Good life expectancy"  )
      
      labels3<-c( "Gross earnings","Consumption" )
-     labels5<-c( "Public services","Cash benefits","Tax receipts")
+     labels5<-c( "Public services","Cash benefits","Tax contributions")
      benchmark1<-select(benchmark, all_of(outcomes1))%>%reshape2::melt( variable.name = "Outcome")
      benchmark3<-select(benchmark, all_of(outcomes3))%>%reshape2::melt( variable.name = "Outcome")
      benchmark5<-select(benchmark, all_of(outcomes5))%>%reshape2::melt( variable.name = "Outcome")
@@ -316,7 +317,7 @@ data2<-maindata[apply(maindata[c(  input$varb )] == 1, 1, any),]
     # labels1<-c( "Life years", "Healthy life years" , "Good life years"  )
     
     labels3<-c( "Gross earnings","Consumption" )
-    labels5<-c( "Public service savings","Cash savings","Tax receipts")
+    labels5<-c( "Public service savings","Cash savings","Tax contributions")
     
     data1<-select(data, all_of(outcomes1))%>%reshape2::melt( variable.name = "Outcome")
     data3<-select(data, all_of(outcomes3))%>%reshape2::melt( variable.name = "Outcome")
@@ -407,7 +408,7 @@ data2<-maindata[apply(maindata[c(  input$varb )] == 1, 1, any),]
             panel.grid.major.x = element_blank(),
             plot.title = element_text( hjust = 0.5) )+
       scale_fill_grey(start = 0, end = 1, name = "")+
-      scale_y_continuous(labels = scales::comma, limits=c(0, 80))+
+      scale_y_continuous(labels = scales::comma, limits=c(0, 75))+
       coord_cartesian(clip = 'off')
 
      
